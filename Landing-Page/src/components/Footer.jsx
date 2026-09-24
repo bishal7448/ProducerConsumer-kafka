@@ -24,6 +24,7 @@ function Footer() {
           <h4>Navigation</h4>
           <ul>
             <li><a href="#courses">Courses</a></li>
+            <li><a href="#producer">Event Dispatcher</a></li>
             <li><a href="#architecture">Architecture</a></li>
             <li><a href="#telemetry">Telemetry Console</a></li>
           </ul>

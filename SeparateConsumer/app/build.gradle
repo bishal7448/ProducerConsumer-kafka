@@ -41,9 +41,6 @@ dependencies {
 
     // Testing
     testImplementation libs.junit
-
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'io.micrometer:micrometer-registry-prometheus'
 }
 
 java {
@@ -55,4 +52,3 @@ java {
 application {
     mainClass = 'org.example.App'
 }
-

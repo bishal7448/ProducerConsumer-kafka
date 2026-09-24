@@ -1,142 +1,249 @@
-# 🎓 Course Platform - Event-Driven Landing Page
+# 🎓 EduStream - Event-Driven Course Platform & Kafka Telemetry System
 
-A modern, high-converting React 19 + Vite landing page for a Course Platform. Built with a rich aesthetic design system, interactive course catalog, real-time event telemetry console, and seamless integration with a Java Event Producer backend.
+A modern, high-performance **React 19 + Vite** landing page and event telemetry client designed to interact with a **Java Spring Boot + Apache Kafka** Event-Driven Architecture.
 
----
-
-## 🚀 Key Features
-
-- **💎 Modern UI/UX Design**: Sleek dark mode palette, glassmorphism card elevation, Google Fonts (*Outfit*, *Plus Jakarta Sans*, *JetBrains Mono*), and smooth micro-animations.
-- **⚡ Preserved Core Logic**: Full backwards-compatibility with the original `emitEvent` and `handleBuyCourseClick` functions targeting `http://localhost:8080/producer/event`.
-- **📡 Real-time Event Telemetry Console**: Interactive log viewer displaying live HTTP `POST` event dispatches, response status codes, payloads, and timestamps.
-- **🔔 Toast Notification System**: Visual feedback alerts confirming event dispatches and connection telemetry.
-- **🧩 Structured Modular Architecture**: Clean component separation (`Header`, `Hero`, `CourseCatalog`, `CourseCard`, `ArchitectureExplainer`, `EventConsole`, `Toast`, `Footer`).
-- **📚 In-App Architectural Explanations**: Interactive tabbed view illustrating the full data flow from user button click to Java Spring Boot Producer and Kafka streaming pipelines.
+Featuring a glassmorphic dark design system, an interactive **Kafka Event Dispatcher Simulator**, real-time **Telemetry Console Log Drawer**, and comprehensive microservice event schema dispatches.
 
 ---
 
-## 🔄 Architecture & Data Flow
+## 🏗️ Architecture & Data Flow Diagram
 
+```text
++-----------------------------------------------------------------------------------+
+|                                 REACT FRONTEND                                    |
+|                               (Port 5173 / Client)                                |
+|                                                                                   |
+|  [ Buy Course Button ] ----> emitEvent('userClick', { ... })                       |
+|                                    |                                              |
+|  [ Event Producer UI ] ----> emitEvent(eventType, data)                           |
++------------------------------------+----------------------------------------------+
+                                     |
+                                     |  HTTP POST http://localhost:8080/producer/event
+                                     |  Header: Content-Type: application/json
+                                     v
++-----------------------------------------------------------------------------------+
+|                            JAVA SPRING BOOT PRODUCER API                          |
+|                                (Port 8080 / Service)                              |
+|                                                                                   |
+|  @PostMapping("/producer/event")                                                  |
+|  ProducerController.java  -------> EventProducer.sendEvent(EventMessage)          |
++------------------------------------+----------------------------------------------+
+                                     |
+                                     |  Publish EventMessage Record (JsonSerializer)
+                                     v
++-----------------------------------------------------------------------------------+
+|                              APACHE KAFKA EVENT BROKER                            |
+|                            (Port 9092 / Topic Cluster)                            |
+|                                                                                   |
+|   Topic: testy                                                                    |
+|   ├── USER_REGISTERED                                                             |
+|   ├── ORDER_CREATED / ORDER_CANCELLED                                             |
+|   ├── PAYMENT_COMPLETED / PAYMENT_FAILED                                          |
+|   └── userClick                                                                   |
++------------------------------------+----------------------------------------------+
+                                     |
+                                     |  @KafkaListener(topics = "testy", groupId = "...")
+                                     v
++-----------------------------------------------------------------------------------+
+|                              DOWNSTREAM CONSUMERS                                 |
+|                                                                                   |
+|   ├── Analytics Event Consumer  --> Increments Prometheus counter                 |
+|   ├── Notification Consumer     --> Routes email / SMS alerts                     |
+|   ├── Order Event Consumer      --> Processes order state lifecycle               |
+|   └── Payment Event Consumer    --> Processes payment transaction status          |
++-----------------------------------------------------------------------------------+
 ```
-+-------------------+              HTTP POST /producer/event             +-------------------------+
-|                   |  ------------------------------------------------> |                         |
-|  React 19 Client  |      Body: { "event": "userClick" }                |   Java Spring Boot API  |
-|   (Port 5173)     |                                                    |      (Port 8080)        |
-|                   |  <------------------------------------------------ |                         |
-+-------------------+         HTTP 200 OK / Response Telemetry           +-------------------------+
-                                                                                      |
-                                                                                      v
-                                                                         +-------------------------+
-                                                                         |  Kafka Event Stream /   |
-                                                                         |   Analytics Pipeline    |
-                                                                         +-------------------------+
+
+---
+
+## ⚡ Key Features
+
+- **💎 Glassmorphic Dark UI**: Premium typography (*Outfit*, *Plus Jakarta Sans*, *JetBrains Mono*), ambient background glows, responsive dynamic card grids, and smooth micro-animations.
+- **📡 Live Telemetry Console Drawer**: Interactive terminal drawer displaying real-time outgoing HTTP dispatches, payload contents, pending loader states, HTTP status codes, and latency timing.
+- **⚙️ Interactive Microservice Event Dispatcher**: Embedded simulator allowing direct dispatch of synthetic domain events for 4 key microservices:
+  - 👤 **User Service**: `USER_REGISTERED`
+  - 🛒 **Order Service**: `ORDER_CREATED`, `ORDER_CANCELLED`
+  - 💳 **Payment Service**: `PAYMENT_COMPLETED`, `PAYMENT_FAILED`
+  - 📊 **Analytics Telemetry**: `userClick`
+- **🔔 Interactive Toast System**: Floating alerts providing instant feedback for HTTP dispatch outcomes, connection errors, and payload validation.
+- **🔄 Architecture Explainer Tabbed Section**: Interactive tabbed view explaining Frontend emitter code, Spring Boot ProducerController code, and system event flows.
+
+---
+
+## 📡 API Endpoint & Data Schemas
+
+### 1. HTTP Endpoint Specification
+
+| Attribute | Specification |
+| :--- | :--- |
+| **Method** | `POST` |
+| **URL** | `http://localhost:8080/producer/event` |
+| **Content-Type** | `application/json` |
+| **CORS Access** | Allowed (`@CrossOrigin(origins = "*")`) |
+
+---
+
+### 2. Event Payload Schemas (`EventRequest`)
+
+#### A. Telemetry Click Event (`userClick`)
+```json
+{
+  "eventType": "userClick",
+  "data": {
+    "action": "userClick",
+    "button": "Buy a course"
+  }
+}
 ```
 
-### API Endpoint Specification
+#### B. User Service Event (`USER_REGISTERED`)
+```json
+{
+  "eventType": "USER_REGISTERED",
+  "data": {
+    "name": "Bishal",
+    "email": "user@example.com"
+  }
+}
+```
 
-| Method | Endpoint | Target URL | Content-Type | Payload Body |
-| :--- | :--- | :--- | :--- | :--- |
-| **`POST`** | `/producer/event` | `http://localhost:8080/producer/event` | `application/json` | `{ "event": "userClick" }` |
+#### C. Order Service Event (`ORDER_CREATED`)
+```json
+{
+  "eventType": "ORDER_CREATED",
+  "data": {
+    "courseId": "java-kafka-stream",
+    "amount": 149
+  }
+}
+```
+
+#### D. Payment Service Event (`PAYMENT_COMPLETED`)
+```json
+{
+  "eventType": "PAYMENT_COMPLETED",
+  "data": {
+    "amount": 149,
+    "method": "CREDIT_CARD"
+  }
+}
+```
 
 ---
 
 ## 📁 Project Directory Structure
 
-```
+```text
 Landing-Page/
 ├── public/
-│   ├── course_fullstack.jpg      # Full-Stack course image
-│   ├── course_java_kafka.jpg     # Java Kafka course image
-│   ├── course_uiux_design.jpg    # UI/UX course image
-│   ├── favicon.svg
-│   └── icons.svg
+│   ├── course_fullstack.jpg        # Course hero thumbnail
+│   ├── course_java_kafka.jpg       # Java Kafka course thumbnail
+│   ├── course_uiux_design.jpg      # UI/UX course thumbnail
+│   ├── favicon.svg                 # Brand favicon
+│   └── icons.svg                   # SVG icon assets
 ├── src/
-│   ├── assets/
 │   ├── components/
-│   │   ├── ArchitectureExplainer.jsx # Visual architecture tabbed explainer
-│   │   ├── CourseCard.jsx            # Individual course card with price & CTA
-│   │   ├── CourseCatalog.jsx         # Featured course grid container
-│   │   ├── EventConsole.jsx          # Live event log terminal
-│   │   ├── Footer.jsx                # Footer with system specs & links
-│   │   ├── Header.jsx                # Navigation bar & live event counter
-│   │   ├── Hero.jsx                  # Hero section & call-to-action
-│   │   └── Toast.jsx                 # Toast notification system
-│   ├── App.css                       # Component styling & animations
-│   ├── App.jsx                       # Main App container
-│   ├── index.css                     # Global variables & typography
-│   ├── LandingPage.jsx               # Main page component & emitEvent handler
-│   └── main.jsx                      # React entry point
-├── index.html                        # HTML entry point with Google Fonts
-├── package.json
-├── README.md                         # Project documentation
-└── vite.config.js
+│   │   ├── ArchitectureExplainer.jsx # Visual tabbed architecture section
+│   │   ├── CourseCard.jsx            # Dynamic course card component
+│   │   ├── CourseCatalog.jsx         # Course grid container
+│   │   ├── EventConsole.jsx          # Live event terminal log drawer
+│   │   ├── EventProducer.jsx         # Interactive Kafka event producer UI
+│   │   ├── Footer.jsx                # Page footer component
+│   │   ├── Header.jsx                # Header bar & live counter badge
+│   │   ├── Hero.jsx                  # Hero section with CTA trigger
+│   │   └── Toast.jsx                 # Toast notification component
+│   ├── config/
+│   │   └── eventDefinitions.js       # Microservice event schema configurations
+│   ├── App.css                       # Application design system & layout styles
+│   ├── App.jsx                       # Root React component
+│   ├── index.css                     # Base styling, variables & reset
+│   ├── LandingPage.jsx               # Main state manager & emitEvent handler
+│   └── main.jsx                      # Vite entry point
+├── index.html                        # HTML root template with Google Fonts
+├── package.json                      # Project dependencies & npm scripts
+└── vite.config.js                    # Vite dev server configuration
 ```
 
 ---
 
-## 🛠️ Getting Started
+## 🛠️ Quickstart & Local Setup
 
 ### Prerequisites
-- **Node.js** (v18.0.0 or later)
-- **npm** (v9.0.0 or later)
+- **Node.js**: `v18.0.0` or higher
+- **npm**: `v9.0.0` or higher
 
-### Installation & Running
+### Steps to Run Frontend
 
-1. **Clone the repository & install dependencies**:
+1. **Install dependencies**:
    ```bash
    npm install
    ```
 
-2. **Start the development server**:
+2. **Start Vite development server**:
    ```bash
    npm run dev
    ```
    Open your browser at [http://localhost:5173](http://localhost:5173).
 
-3. **Build for production**:
+3. **Build Production Bundle**:
    ```bash
    npm run build
    ```
 
 ---
 
-## ☕ Java Backend Integration Guide
+## ☕ Java Spring Boot Integration Guide
 
-To process the events dispatched from this landing page, configure your Java Spring Boot application running on `http://localhost:8080` with the following controller:
+To process requests dispatched from this React frontend, configure a Spring Boot application running on port `8080`.
 
+### 1. Request DTO Record (`EventRequest.java`)
 ```java
-package com.example.producer.controller;
+package org.example.model;
 
-import org.springframework.http.ResponseEntity;
+public record EventRequest(
+    EventType eventType,
+    Object data
+) {}
+```
+
+### 2. Spring Boot REST Controller (`ProducerController.java`)
+```java
+package org.example.controller;
+
+import org.example.model.EventMessage;
+import org.example.model.EventRequest;
+import org.example.model.EventType;
+import org.example.producer.EventProducer;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/producer")
-@CrossOrigin(origins = "*") // Enable CORS for React Dev Server
+@CrossOrigin(origins = "*") // Allows request from React frontend (http://localhost:5173)
 public class ProducerController {
 
-    @PostMapping("/event")
-    public ResponseEntity<String> handleEvent(@RequestBody EventRequest request) {
-        System.out.println("Received telemetry event: " + request.getEvent());
-        
-        // Example: Forward to Kafka or event store
-        // kafkaTemplate.send("course-events", request.getEvent());
+    private final EventProducer eventProducer;
 
-        return ResponseEntity.ok("Event received successfully");
+    public ProducerController(EventProducer eventProducer) {
+        this.eventProducer = eventProducer;
     }
-}
 
-// EventRequest POJO
-class EventRequest {
-    private String event;
+    @PostMapping("/event")
+    public void sendEventToKafka(@RequestBody EventRequest eventRequest) {
+        EventType eventType = eventRequest.eventType();
 
-    public String getEvent() { return event; }
-    public void setEvent(String event) { this.event = event; }
+        EventMessage eventMessage = EventMessage.create(
+                eventType,
+                "ProducerController",
+                eventRequest.data()
+        );
+
+        eventProducer.sendEvent(eventMessage);
+    }
 }
 ```
 
 ---
 
-## 📄 License
+## 📜 License
 
 Distributed under the MIT License.

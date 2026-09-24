@@ -858,3 +858,130 @@
     justify-content: center;
   }
 }
+
+/* Event Producer Section */
+.producer-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.service-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: var(--shadow-card);
+}
+
+.service-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-color-glow);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+
+.service-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.service-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+.service-title {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.service-desc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.event-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.producer-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+}
+
+.producer-btn.btn-primary {
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--text-primary);
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+.producer-btn.btn-primary:hover {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: var(--accent-primary);
+  transform: translateX(4px);
+}
+
+.producer-btn.btn-danger {
+  background: rgba(239, 68, 68, 0.08);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.producer-btn.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: var(--error-color);
+  transform: translateX(4px);
+}
+
+.btn-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--accent-cyan);
+}
+
+.btn-label {
+  flex-grow: 1;
+  text-align: left;
+  margin-left: 10px;
+}
+
+.btn-code {
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+

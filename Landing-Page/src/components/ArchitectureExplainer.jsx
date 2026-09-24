@@ -51,7 +51,7 @@ function ArchitectureExplainer() {
                 <div className="step-number">02</div>
                 <div className="step-icon">📡</div>
                 <h4>HTTP POST Event</h4>
-                <p>Frontend executes <code>emitEvent('userClick')</code> dispatching payload <code>{`{ event: "userClick" }`}</code> to <code>http://localhost:8080/producer/event</code>.</p>
+                <p>Frontend executes <code>emitEvent('userClick')</code> dispatching payload <code>{`{ eventType: "userClick", data: { ... } }`}</code> to <code>http://localhost:8080/producer/event</code>.</p>
               </div>
 
               <div className="step-arrow">➔</div>
@@ -86,14 +86,17 @@ function ArchitectureExplainer() {
               <span className="lang-tag">JavaScript / React</span>
             </div>
             <pre className="code-block">
-{`const emitEvent = (eventName) => {
-    // Send a request to your Java server to emit an event
+{`const emitEvent = (eventType, data = {}) => {
+    // Send standard event object to Java Spring Boot backend
     fetch('http://localhost:8080/producer/event', {
         method : 'POST',
         headers : {
             'Content-Type': 'application/json'
         },
-        body : JSON.stringify({ event: eventName })
+        body : JSON.stringify({
+            eventType: eventType,
+            data: data
+        })
     }).then(response => {
         if(!response.ok) {
             throw new Error('Failed to emit event...')
@@ -104,8 +107,8 @@ function ArchitectureExplainer() {
 }
 
 const handleBuyCourseClick = () => {
-    // Emit userClick event when the "Buy a course" button is clicked
-    emitEvent('userClick')
+    // Emit standardized userClick event when "Buy a course" is clicked
+    emitEvent('userClick', { action: 'userClick', button: 'Buy a course' })
 }`}
             </pre>
           </div>
@@ -124,15 +127,17 @@ const handleBuyCourseClick = () => {
 public class ProducerController {
 
     @Autowired
-    private KafkaTemplate<String, String> kafkaTemplate;
+    private KafkaTemplate<String, Object> kafkaTemplate;
 
     @PostMapping("/event")
     public ResponseEntity<String> receiveEvent(@RequestBody EventRequest request) {
-        String eventName = request.getEvent();
-        System.out.println("Received event from Landing Page: " + eventName);
+        String eventType = request.getEventType();
+        Object data = request.getData();
+        
+        System.out.println("Received event: " + eventType + " with data: " + data);
         
         // Broadcast to Kafka topic or message queue
-        kafkaTemplate.send("course-user-clicks", eventName);
+        kafkaTemplate.send("course-user-clicks", eventType, data);
         
         return ResponseEntity.ok("Event received successfully");
     }

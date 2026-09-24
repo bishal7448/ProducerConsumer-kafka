@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import CourseCatalog from './components/CourseCatalog';
+import EventProducer from './components/EventProducer';
 import ArchitectureExplainer from './components/ArchitectureExplainer';
 import EventConsole from './components/EventConsole';
 import Toast from './components/Toast';
@@ -24,63 +25,93 @@ function LandingPage() {
         setToasts((prev) => prev.filter((t) => t.id !== id));
     };
 
-    const emitEvent = (eventName) => {
+    const emitEvent = (eventInput) => {
+        let payload;
+        let displayEventName;
+
+        if (typeof eventInput === 'string') {
+            payload = {
+                eventType: eventInput,
+                data: {
+                    action: eventInput,
+                    button: "Buy a course",
+                    timestamp: Date.now()
+                }
+            };
+            displayEventName = eventInput;
+        } else if (typeof eventInput === 'object' && eventInput !== null) {
+            const eventType = eventInput.eventType || eventInput.event || 'userClick';
+            const data = eventInput.data || (eventInput.event ? { action: eventInput.event } : eventInput);
+            payload = { eventType, data };
+            displayEventName = eventType;
+        } else {
+            payload = {
+                eventType: 'userClick',
+                data: {
+                    action: 'userClick',
+                    button: "Buy a course",
+                    timestamp: Date.now()
+                }
+            };
+            displayEventName = 'userClick';
+        }
+
         const timestamp = new Date().toLocaleTimeString();
         setEventCount((prev) => prev + 1);
 
-        // Add log entry tracking request start
-        const logId = Date.now();
+        const logId = Date.now() + Math.random();
         setEventLogs((prev) => [
             {
                 id: logId,
                 time: timestamp,
                 status: 'PENDING',
-                payload: { event: eventName },
+                payload: payload,
                 message: 'Dispatching POST request...'
             },
             ...prev
         ]);
 
-        // Send a request to your Java server to emit an event
         fetch('http://localhost:8080/producer/event', {
-            method : 'POST',
-            headers : {
+            method: 'POST',
+            headers: {
                 'Content-Type': 'application/json'
             },
-            body : JSON.stringify({ event: eventName })
-        }).then(response => {
-            if(!response.ok) {
-                throw new Error('Failed to emit event...')
-            }
-            // Update log on success
-            setEventLogs((prev) =>
-                prev.map((log) =>
-                    log.id === logId
-                        ? { ...log, status: 'SUCCESS', message: 'HTTP 200 OK - Event Received' }
-                        : log
-                )
-            );
-            addToast('success', 'Event Dispatched Successfully', `Event '${eventName}' sent to http://localhost:8080/producer/event (HTTP 200)`);
-        }).catch(error => {
-            console.error('Error emitting event:', error);
-            // Update log on error (e.g. backend server offline or CORS error)
-            setEventLogs((prev) =>
-                prev.map((log) =>
-                    log.id === logId
-                        ? { ...log, status: 'ERROR', message: `Fetch Error: Backend Offline or CORS blocked (${error.message})` }
-                        : log
-                )
-            );
-            addToast(
-                'info',
-                `Event '${eventName}' Dispatched`,
-                `Target: http://localhost:8080/producer/event. Note: If your Java backend is offline, start Spring Boot on port 8080.`
-            );
-        });
+            body: JSON.stringify(payload)
+        })
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return response.text();
+            })
+            .then((resText) => {
+                setEventLogs((prev) =>
+                    prev.map((log) =>
+                        log.id === logId
+                            ? { ...log, status: 'SUCCESS', message: `HTTP 200 OK - ${resText || 'Event Received'}` }
+                            : log
+                    )
+                );
+                addToast('success', 'Event Dispatched', `Event '${displayEventName}' sent to backend (HTTP 200 OK)`);
+            })
+            .catch((error) => {
+                console.error('Error emitting event:', error);
+                setEventLogs((prev) =>
+                    prev.map((log) =>
+                        log.id === logId
+                            ? { ...log, status: 'ERROR', message: `Fetch Error: Backend Offline or CORS blocked (${error.message})` }
+                            : log
+                    )
+                );
+                addToast(
+                    'info',
+                    `Event '${displayEventName}' Dispatched`,
+                    `Target: http://localhost:8080/producer/event. Note: Java Spring Boot server offline or CORS restricted.`
+                );
+            });
     };
 
     const handleBuyCourseClick = () => {
-        // Emit userClick event when the "Buy a course" button is clicked
         emitEvent('userClick');
     };
 
@@ -92,10 +123,11 @@ function LandingPage() {
         <div className="landing-page-wrapper">
             <Toast toasts={toasts} onCloseToast={removeToast} />
             <Header eventCount={eventCount} onBuyCourseClick={handleBuyCourseClick} />
-            
+
             <main className="main-content">
                 <Hero onBuyCourseClick={handleBuyCourseClick} />
                 <CourseCatalog onBuyCourseClick={handleBuyCourseClick} />
+                <EventProducer onEmitEvent={emitEvent} />
                 <ArchitectureExplainer />
                 <EventConsole 
                     logs={eventLogs} 

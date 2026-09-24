@@ -1,4 +1,4 @@
-# Event-Driven Microservice with Spring Boot, Apache Kafka & React
+# Event-Driven Microservices Platform with Spring Boot, Apache Kafka & React 19
 
 [![Java Version](https://img.shields.io/badge/Java-21-orange.svg?style=flat-square&logo=openjdk)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.11-brightgreen.svg?style=flat-square&logo=springboot)](https://spring.io/projects/spring-boot)
@@ -8,57 +8,73 @@
 [![Prometheus](https://img.shields.io/badge/Prometheus-Metrics-E6522C.svg?style=flat-square&logo=prometheus)](https://prometheus.io/)
 [![Gradle](https://img.shields.io/badge/Gradle-Build-02303A.svg?style=flat-square&logo=gradle)](https://gradle.org/)
 
-A full-stack event-driven demonstration project illustrating real-time user interaction streaming from a **React 19** frontend through a **Spring Boot REST Producer**, queued in an **Apache Kafka** topic, and processed by a **Spring Boot Kafka Consumer** with **Prometheus metrics telemetry**.
+A full-stack event-driven microservices ecosystem featuring a **React 19 + Vite** frontend interactive platform, a **Spring Boot REST Producer API**, native JSON serialization with **Apache Kafka**, and decoupled consumer microservices (**Order**, **Payment**, **Notification**, and **Analytics** with real-time **Prometheus telemetry metrics**).
 
 ---
 
 ## 🏗️ System Architecture
 
 ```mermaid
-flowchart LR
-    subgraph Frontend ["Frontend (Vite + React 19)"]
-        UI["React Web Console\n(Landing Page)"]
+flowchart TD
+    subgraph Frontend ["Frontend Layer (React 19 + Vite)"]
+        UI["React Web Console / Landing Page\n(Port 5173)"]
+        CONSOLE["Live Telemetry Log Console & Event Dispatcher"]
     end
 
-    subgraph Backend ["Backend (Spring Boot 3.2)"]
+    subgraph BackendProducer ["Producer Microservice (app module)"]
         REST["ProducerController\nPOST /producer/event"]
-        Consumer["ConsumerController\n@KafkaListener"]
-        Metrics["Prometheus Registry\nkafka_events_received_total"]
+        PROD["EventProducer\nProducer<String, EventMessage>"]
+        JSON_PROD["JsonSerializer"]
     end
 
-    subgraph Messaging ["Message Broker"]
+    subgraph Broker ["Message Broker"]
         Kafka[("Apache Kafka Broker\nTopic: testy")]
     end
 
-    UI -->|HTTP POST JSON| REST
-    REST -->|Publish ProducerRecord| Kafka
-    Kafka -->|Consume Event| Consumer
-    Consumer -->|Increment Counter| Metrics
+    subgraph Consumers ["Decoupled Microservice Consumers (SeparateConsumer module)"]
+        CON_ORDER["OrderEventConsumer\ngroupId: order-service-group"]
+        CON_PAY["PaymentEventConsumer\ngroupId: payment-service-group"]
+        CON_NOTIF["NotificationEventConsumer\ngroupId: notification-service-group"]
+        CON_ANALYTICS["AnalyticsEventConsumer\ngroupId: analytics-service-group"]
+        METRICS["Prometheus Registry\nkafka_events_received_total"]
+    end
+
+    UI -->|HTTP POST EventRequest| REST
+    CONSOLE -->|Monitor HTTP Status| UI
+    REST -->|Construct EventMessage record| PROD
+    PROD -->|Serialize to JSON| JSON_PROD
+    JSON_PROD -->|Publish Record| Kafka
+
+    Kafka -->|Pub/Sub Consumer Group| CON_ORDER
+    Kafka -->|Pub/Sub Consumer Group| CON_PAY
+    Kafka -->|Pub/Sub Consumer Group| CON_NOTIF
+    Kafka -->|Pub/Sub Consumer Group| CON_ANALYTICS
+    CON_ANALYTICS -->|Increment Metric Counter| METRICS
 ```
 
 ---
 
 ## ✨ Key Features
 
-- **Real-Time Event Dispatching**: Trigger UI user actions (e.g. course purchase clicks) which are dispatched via REST API calls.
-- **Kafka Producer Integration**: Spring Boot controller configured with custom Kafka `StringSerializer` properties publishing messages to the `testy` topic.
-- **Asynchronous Kafka Consumer Listener**: Decoupled `@KafkaListener` consuming messages under the `metrics-consumer-group` consumer group.
-- **Prometheus Telemetry**: Real-time event counter metric (`kafka_events_received_total`) exposed for monitoring and observability.
-- **CORS Support**: Spring `@Configuration` enabling cross-origin requests from the React frontend running on `http://localhost:5173`.
-- **Interactive Event Console UI**: Live terminal drawer inside the React app visualizing pending, successful, and failed HTTP event dispatches.
+- **Decoupled Architecture**: Independent Producer microservice (`app`) and standalone Consumer microservice (`SeparateConsumer`) communicating asynchronously over Kafka.
+- **Typed Event Envelope Model**: Java 21 record-based domain models (`EventMessage`, `EventRequest`, `EventType`) carrying unique event IDs, source metadata, timestamps, and dynamic payload data.
+- **Native Spring Kafka JSON Serialization**: Configured `JsonSerializer` and `StringJsonMessageConverter` for seamless non-blocking object-to-JSON serialization across Kafka topics.
+- **Parallel Pub/Sub Consumer Groups**: Multiple isolated consumer groups (`order-service-group`, `payment-service-group`, `notification-service-group`, `analytics-service-group`) processing event streams independently without blocking each other.
+- **Prometheus Telemetry**: Real-time metric counter (`kafka_events_received_total`) backing analytics monitoring via Prometheus standard registry (`simpleclient`).
+- **Glassmorphic React 19 Telemetry UI**: Interactive frontend featuring a real-time event dispatcher, live log drawer terminal, course catalog, interactive architecture flow explainer, and toast alerts.
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Domain | Technology | Description |
+| Layer | Technology | Description |
 | :--- | :--- | :--- |
-| **Backend Framework** | Java 21 / Spring Boot 3.2.11 | RESTful Web APIs and dependency management |
-| **Messaging Broker** | Apache Kafka | Distributed event streaming platform |
-| **Kafka Integration** | Spring Kafka | `@KafkaListener` & native `KafkaProducer` integration |
-| **Frontend** | React 19, Vite 8 | Modern component UI with interactive telemetry dashboard |
-| **Observability** | Prometheus / Spring Actuator | Real-time metric tracking (`simpleclient`) |
-| **Build System** | Gradle | Java multi-module build tool |
+| **Frontend Framework** | React 19, Vite 8 | Interactive single-page app with glassmorphism UI & telemetry console |
+| **Backend Framework** | Java 21, Spring Boot 3.2.11 | REST API Producer & decoupled Consumer microservices |
+| **Messaging Broker** | Apache Kafka | Distributed streaming platform (Topic: `testy`) |
+| **Serialization** | Spring Kafka `JsonSerializer` | Automatic JSON conversion between Java records and Kafka records |
+| **Observability** | Prometheus / Actuator | Custom metric tracking (`kafka_events_received_total`) |
+| **Build & Tooling** | Gradle 8 | Multi-module Java project management |
 
 ---
 
@@ -66,27 +82,49 @@ flowchart LR
 
 ```text
 ProducerConsumer-kafka/
-├── app/                                 # Spring Boot Microservice
-│   ├── build.gradle                     # Gradle configuration & dependencies
+├── app/                                 # Spring Boot Producer API Microservice
+│   ├── build.gradle                     # Producer dependencies & Gradle config
 │   └── src/main/
 │       ├── java/org/example/
-│       │   ├── App.java                 # Spring Boot Main Entry Point
+│       │   ├── App.java                 # Producer Application Entry Point
 │       │   ├── config/
-│       │   │   └── CorsConfig.java      # CORS Configuration (Port 5173)
+│       │   │   ├── CorsConfig.java              # Frontend CORS policy (Port 5173)
+│       │   │   ├── KafkaConsumerConfig.java     # Consumer Listener & Converter Config
+│       │   │   └── KafkaProducerConfig.java     # Kafka Producer & JsonSerializer Config
+│       │   ├── consumer/                        # Embedded Consumer Listeners
 │       │   ├── controller/
-│       │   │   └── ProducerController.java # Kafka Producer REST Endpoint
-│       │   └── service/
-│       │       └── ConsumerController.java # @KafkaListener & Prometheus Metric
+│       │   │   └── ProducerController.java     # REST Controller (POST /producer/event)
+│       │   ├── model/
+│       │   │   ├── EventMessage.java           # Standard Event Record Envelope
+│       │   │   ├── EventRequest.java           # DTO Request Payload Record
+│       │   │   └── EventType.java              # Enum Event Domain Types
+│       │   └── producer/
+│       │       └── EventProducer.java          # Kafka Producer Component
 │       └── resources/
-│           └── application.properties   # Kafka & Prometheus config
-├── Landing-Page/                        # React 19 Frontend
+│           └── application.properties   # Kafka & server configuration
+├── SeparateConsumer/                    # Standalone Consumer Microservice Module
+│   ├── build.gradle                     # Standalone Consumer dependencies
+│   └── app/src/main/
+│       └── java/org/example/
+│           ├── App.java                 # Consumer Application Entry Point
+│           ├── config/
+│           │   └── KafkaConsumerConfig.java     # Kafka JSON Deserialization Config
+│           ├── consumer/
+│           │   ├── AnalyticsEventConsumer.java    # Prometheus Metrics Listener
+│           │   ├── NotificationEventConsumer.java # User Notification Router Listener
+│           │   ├── OrderEventConsumer.java        # Order Processing Listener
+│           │   └── PaymentEventConsumer.java      # Payment Settlement Listener
+│           └── model/                           # Shared Event Record Definitions
+├── Landing-Page/                        # React 19 + Vite Frontend Application
 │   ├── package.json                     # Frontend dependencies
-│   ├── vite.config.js                   # Vite dev server configuration
+│   ├── vite.config.js                   # Vite configuration
 │   └── src/
-│       ├── LandingPage.jsx              # Main dashboard component & event handler
-│       └── components/                  # UI components & Event Console
-├── settings.gradle                      # Gradle root settings
-└── README.md                            # Technical documentation
+│       ├── components/                  # EventConsole, ArchitectureExplainer, etc.
+│       ├── config/                      # eventDefinitions.js domain schemas
+│       ├── App.jsx                      # App root component
+│       └── LandingPage.jsx              # Core telemetry state & dispatch logic
+├── settings.gradle                      # Root Gradle settings (modules: app, SeparateConsumer)
+└── README.md                            # Main project technical documentation
 ```
 
 ---
@@ -95,10 +133,9 @@ ProducerConsumer-kafka/
 
 ### Prerequisites
 
-Ensure you have the following installed on your machine:
 - **Java JDK 21** or higher
 - **Node.js 18+** & **npm**
-- **Apache Kafka Broker** running (default configured address: `192.168.56.102:9092` or update to `localhost:9092`)
+- **Apache Kafka Broker** (running locally or remote broker, default configured host: `192.168.56.102:9092` or `localhost:9092`)
 
 ---
 
@@ -107,28 +144,45 @@ Ensure you have the following installed on your machine:
 Ensure Kafka and ZooKeeper / KRaft mode are running, and create the required topic `testy`:
 
 ```bash
-# Create topic (if not using auto-creation)
+# Create Kafka topic (if auto-creation is disabled)
 kafka-topics.sh --create --topic testy --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
 ```
 
 > ⚙️ **Configuration Note:**  
-> Update `BOOTSTRAP_SERVERS` in [`ProducerController.java`](file:///app/src/main/java/org/example/controller/ProducerController.java) and `spring.kafka.bootstrap-servers` in [`application.properties`](file:///app/src/main/resources/application.properties) to match your Kafka host address if different from `192.168.56.102:9092`.
+> Update `BOOTSTRAP_SERVERS` in `KafkaProducerConfig.java` and `KafkaConsumerConfig.java` to match your target Kafka broker IP address.
 
 ---
 
-### 2️⃣ Backend Setup (Spring Boot)
+### 2️⃣ Start Spring Boot Producer API
 
-1. Open a terminal in the root project directory:
-   ```bash
-   ./gradlew :app:bootRun
-   ```
-   *(On Windows PowerShell, run `.\gradlew.bat :app:bootRun`)*
+Open a terminal in the repository root directory:
 
-2. The server will start on port `8080`.
+```bash
+# On Linux/macOS
+./gradlew :app:bootRun
+
+# On Windows PowerShell
+.\gradlew.bat :app:bootRun
+```
+The REST API server will start on port `8080`.
 
 ---
 
-### 3️⃣ Frontend Setup (React + Vite)
+### 3️⃣ Start Standalone Consumer Microservice (Optional / Decoupled Mode)
+
+To run the decoupled consumer microservice in a separate process:
+
+```bash
+# On Linux/macOS
+./gradlew :SeparateConsumer:app:bootRun
+
+# On Windows PowerShell
+.\gradlew.bat :SeparateConsumer:app:bootRun
+```
+
+---
+
+### 4️⃣ Start React Frontend Dashboard
 
 1. Navigate to the `Landing-Page` directory:
    ```bash
@@ -140,63 +194,61 @@ kafka-topics.sh --create --topic testy --bootstrap-server localhost:9092 --parti
    npm install
    ```
 
-3. Launch the development server:
+3. Launch development server:
    ```bash
    npm run dev
    ```
 
-4. Open `http://localhost:5173` in your browser.
+4. Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
 ## 📡 API Specification
 
-### 1. Produce Event to Kafka
-Publishes an event message to Kafka topic `testy`.
+### Dispatch Event to Kafka Producer
+Accepts HTTP POST requests from frontend web clients or API tools and publishes structured event messages to Kafka topic `testy`.
 
 - **Endpoint**: `POST /producer/event`
 - **Content-Type**: `application/json`
 
-**Sample Request Body:**
+#### Request Body Schema (`EventRequest`)
 ```json
 {
-  "event": "userClick"
+  "eventType": "USER_REGISTERED | ORDER_CREATED | ORDER_CANCELLED | PAYMENT_COMPLETED | PAYMENT_FAILED | userClick",
+  "data": {
+    "key": "value"
+  }
 }
 ```
 
-**Sample `curl` Command:**
+#### Sample `curl` Command
 ```bash
 curl -X POST http://localhost:8080/producer/event \
   -H "Content-Type: application/json" \
-  -d '{"event":"userClick"}'
+  -d '{
+        "eventType": "ORDER_CREATED",
+        "data": {
+          "orderId": "ORD-9842",
+          "userId": "USER-1024",
+          "amount": 149.99
+        }
+      }'
 ```
 
-**Response:**
-- Status `200 OK`
-
 ---
 
-### 2. Monitoring & Metrics
-Prometheus metrics endpoint enabled via Spring Boot Actuator and Prometheus client library.
+## 🧪 Operational Event Workflow
 
-- **Actuator Metrics Endpoint**: `GET http://localhost:8080/actuator/prometheus`
-- **Tracked Metric**: `kafka_events_received_total` (Counter incremented on every consumed message)
-
----
-
-## 🧪 Operational Workflow
-
-1. User clicks **"Buy a course"** or triggers an interactive action on the React landing page.
-2. The frontend sends an HTTP `POST` request to `http://localhost:8080/producer/event`.
-3. `ProducerController` sends the record to Kafka topic `testy` and logs the partition offset.
-4. `ConsumerController` listens asynchronously on topic `testy`, prints the received message to stdout, and increments `kafka_events_received_total`.
-5. The React **Event Console** displays the live execution log status (`PENDING` ➔ `SUCCESS HTTP 200`).
-
----
-
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome! Feel free to check the issues page or submit pull requests.
+1. **User Action / Synthetic Simulation**: User clicks **"Buy Course"** or dispatches a synthetic microservice event from the **Event Producer** drawer.
+2. **HTTP Payload Construction**: Frontend constructs an `EventRequest` payload (`eventType`, `data`) and emits an asynchronous `POST` request to `http://localhost:8080/producer/event`.
+3. **Producer Processing**: `ProducerController` receives `EventRequest` and constructs an immutable `EventMessage` record with generated `eventId` and `timestamp`.
+4. **Kafka Publishing**: `EventProducer` uses `Producer<String, EventMessage>` to publish the JSON-serialized record to Kafka topic `testy`.
+5. **Parallel Consumer Group Execution**:
+   - `OrderEventConsumer` (`order-service-group`): Processes order creation/cancellation.
+   - `PaymentEventConsumer` (`payment-service-group`): Handles payment state updates.
+   - `NotificationEventConsumer` (`notification-service-group`): Routes notifications.
+   - `AnalyticsEventConsumer` (`analytics-service-group`): Increments Prometheus counter `kafka_events_received_total`.
+6. **Telemetry Feedback**: Frontend UI updates real-time status (`PENDING` ➔ `SUCCESS HTTP 200`) inside the embedded **Event Console log viewer**.
 
 ---
 

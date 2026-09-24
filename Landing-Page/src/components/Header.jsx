@@ -20,9 +20,9 @@ function Header({ eventCount, onBuyCourseClick }) {
 
         <nav className="nav-links">
           <a href="#courses" className="nav-link">Courses</a>
+          <a href="#producer" className="nav-link">Event Dispatcher</a>
           <a href="#architecture" className="nav-link">Architecture</a>
           <a href="#telemetry" className="nav-link">Telemetry Console</a>
-          <a href="#readme-info" className="nav-link">Docs</a>
         </nav>
 
         <div className="header-actions">
